@@ -40,3 +40,56 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  nginx:
+    container_name: web
+    build:
+      context: .
+      dockerfile: containers/nginx/Dockerfile
+    volumes:
+      - ./static:/static
+    ports:
+      - 80:80
+    depends_on:
+      - app
+
+  front:
+    container_name: front
+    build:
+      context: .
+      dockerfile: containers/front/Dockerfile
+    volumes:
+      - ./frontend:/code
+      - node_modules_volume:/frontend/node_modules
+    command: sh -c "npm run dev"
+    ports:
+      - "3000:3000"
+      - "3030:3030"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - NEXT_PUBLIC_RESTAPI_URL=http://localhost/back
+
+  localstack:
+    image: localstack/localstack
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sns
+      - AWS_ACCESS_KEY_ID=localstack
+      - AWS_SECRET_ACCESS_KEY=localstack
+      - DEBUG=1
+    volumes:
+      - localstack_data:/tmp/localstack/data
+      - localstack_bin:/var/lib/localstack
+
+volumes:
+  db_data:
+  static:
+  localstack_data:
+  localstack_bin:
+  node_modules_volume:
+
+networks:
+  default:
+    name: testnet
